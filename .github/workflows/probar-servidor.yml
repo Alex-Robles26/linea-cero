@@ -1,0 +1,39 @@
+# Prueba el instalador de los servidores oficiales en una máquina ARM64 con Ubuntu, como la
+# gratuita de Oracle (Ampere A1): instala, deja jugar a los bots unos minutos y enseña los registros.
+name: Probar servidor
+on:
+  workflow_dispatch:
+
+jobs:
+  probar:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar como en Oracle
+        run: sudo bash servidor/instalar.sh
+      - name: Dejar jugar a los bots
+        run: sleep 150
+      - name: Estado
+        run: |
+          systemctl --no-pager status 'lineacero@*' | head -40 || true
+          echo "== CPU y memoria"
+          ps -o pid,pcpu,rss,etime,args -C servidor || true
+          nproc; free -m
+      - name: Registros
+        if: always()
+        run: |
+          sudo journalctl -u 'lineacero@*' --no-pager | grep -vE '^\s*$' | tail -80 || true
+          echo "== Eventos"
+          sudo sh -c 'tail -n 30 /opt/lineacero/home/.local/share/godot/app_userdata/*/logs/server-*.jsonl' || true
+          echo "== Bajas por partida"
+          sudo sh -c 'grep -c "\"kill\"" /opt/lineacero/home/.local/share/godot/app_userdata/*/logs/server-*.jsonl' || true
+      - name: Responde a Buscar partidas
+        run: |
+          python3 - <<'PY'
+          import socket
+          s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+          for port in (24570, 24571, 24572):
+              print(port, "abierto" if s.connect_ex(("127.0.0.1", port)) == 0 else "?")
+          PY
+          sudo ss -ulpn | grep servidor || true
