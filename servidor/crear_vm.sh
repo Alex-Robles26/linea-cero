@@ -8,8 +8,8 @@
 set -uo pipefail
 
 NAME="lineacero"
-OCPUS="${OCPUS:-4}"
-MEM="${MEM:-24}"
+# Tamaños a probar, del mayor al menor ("núcleos:GB"); la máquina se puede ampliar después sin perder nada.
+SIZES="${SIZES:-4:24 2:12 1:6}"
 PUBKEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEQ+D91Q9Ktym/ZwCBErbyqGTJ+TzaCP1Oa46nDZQGYW lineacero-servidor"
 T="${OCI_TENANCY:?Ejecuta esto en Oracle Cloud Shell}"
 
@@ -34,6 +34,8 @@ EOF
 
 try=0
 while true; do
+  for SIZE in $SIZES; do
+  OCPUS="${SIZE%%:*}"; MEM="${SIZE##*:}"
   for AD in "${ADS[@]}"; do
     try=$((try + 1))
     echo "[$(date +%H:%M:%S)] Intento $try en $AD ($OCPUS OCPU / $MEM GB)..."
@@ -52,7 +54,8 @@ while true; do
     if ! echo "$out" | grep -qi 'capacity\|TooManyRequests\|429'; then
       echo "Error que no es de capacidad, me detengo:"; echo "$out" | tail -20; exit 1
     fi
-    sleep 20
+    sleep 10
   done
-  sleep 30
+  done
+  sleep 20
 done

@@ -40,8 +40,9 @@ if [ ! -f "$DIR/servidores.conf" ]; then
 24572|competitive|fundicion|9|Oficial · Competitivo 5c5
 EOF
 fi
+# With a single core, keep Por equipos and Zona Cero (which idles in its lobby until someone joins).
 if [ "$(nproc)" -lt 2 ]; then
-  sed -i '/^2457[1-9]|/s/^/#/' "$DIR/servidores.conf"
+  sed -i '/^2457[2-9]|/s/^/#/' "$DIR/servidores.conf"
 fi
 
 echo "== Programa de actualización"
